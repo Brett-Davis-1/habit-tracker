@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Habit Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<!-- UI upgrade from ChatGPT -->
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6fb;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  .nav button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+  }
+
+  .nav button.active {
+  background: #0056b3;
+}
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+  }
+
+  button.action {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #28a745;
+    color: white;
+    cursor: pointer;
+  }
+
+  .habit-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-radius: 10px;
+    background: #f9f9f9;
+    margin-top: 8px;
+  }
+
+  .habit-actions button {
+    margin-left: 5px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .good {
+    border-left: 5px solid #28a745;
+  }
+
+  .bad {
+    border-left: 5px solid #dc3545;
+  }
+</style>
+<!-- End UI upgrade from ChatGPT -->
+</head>
+
+<body>
+  <div class="app">
+
+<div class="nav">
+  <button onclick="showPage('tracker')">Tracker</button>
+  <button onclick="showPage('analytics')">Analytics</button>
+</div>
+
+<!-- TRACKER PAGE -->
+<div id="trackerPage">
+
+  <div class="card">
+    <h1>Habit Tracker</h1>
+
+    <input id="habitName" placeholder="Enter habit name" />
+
+    <select id="habitType">
+      <option value="good">Good</option>
+      <option value="bad">Bad</option>
+    </select>
+
+    <button class="action" onclick="addHabit()">Add Habit</button>
+  </div>
+
+  <div class="card">
+    <h2>Daily Summary</h2>
+    <div id="summary"></div>
+  </div>
+
+  <div class="card">
+    <h2>Your Habits</h2>
+    <div id="habitList"></div>
+  </div>
+
+</div>
+
+<!-- ANALYTICS PAGE -->
+<div id="analyticsPage" style="display:none;">
+
+  <h2>Analytics</h2>
+
+  <select id="timeFilter" onchange="renderChart()">
+    <option value="day">Today</option>
+    <option value="week">Week</option>
+    <option value="month">Month</option>
+    <option value="year">Year</option>
+  </select>
+
+  <canvas id="paretoChart"></canvas>
+
+</div>
+
+<script>
+let habits = JSON.parse(localStorage.getItem('habits')) || [];
+let logs = JSON.parse(localStorage.getItem('logs')) || [];
+let chart;
+
+function showPage(page) {
+  document.getElementById('trackerPage').style.display =
+    page === 'tracker' ? 'block' : 'none';
+
+  document.getElementById('analyticsPage').style.display =
+    page === 'analytics' ? 'block' : 'none';
+
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.classList.remove('active');
+  });
+
+  if (page === 'tracker') {
+    document.querySelectorAll('.nav button')[0].classList.add('active');
+  } else {
+    document.querySelectorAll('.nav button')[1].classList.add('active');
+    renderChart();
+  }
+}
+
+function saveData() {
+  localStorage.setItem('habits', JSON.stringify(habits));
+  localStorage.setItem('logs', JSON.stringify(logs));
+}
+
+function addHabit() {
+  const name = document.getElementById('habitName').value;
+  const type = document.getElementById('habitType').value;
+
+  habits.push({ id: Date.now(), name, type });
+
+  saveData();
+  displayHabits();
+  displaySummary();
+}
+
+function logHabit(id) {
+  logs.push({ habitId: id, timestamp: Date.now() });
+  saveData();
+  displayHabits();
+  displaySummary();
+}
+
+function deleteHabit(id) {
+  habits = habits.filter(h => h.id !== id);
+
+  // remove related logs too (important)
+  logs = logs.filter(l => l.habitId !== id);
+
+  saveData();
+  displayHabits();
+  displaySummary();
+}
+
+function displayHabits() {
+  const list = document.getElementById('habitList');
+  list.innerHTML = '';
+
+  habits.forEach(h => {
+    const div = document.createElement('div');
+div.className = `habit-card ${h.type}`;
+
+div.innerHTML = `
+  <span>${h.name}</span>
+  <div class="habit-actions">
+    <button onclick="logHabit(${h.id})">Log</button>
+    <button onclick="deleteHabit(${h.id})">Delete</button>
+  </div>
+`;
+    list.appendChild(div);
+  });
+}
+
+function displaySummary() {
+  const el = document.getElementById('summary');
+  el.innerHTML = '';
+
+  const daily = {};
+
+  logs.forEach(l => {
+    const date = new Date(l.timestamp).toLocaleDateString();
+    const habit = habits.find(h => h.id === l.habitId);
+    if (!habit) return;
+
+    if (!daily[date]) daily[date] = { good: 0, bad: 0 };
+    daily[date][habit.type]++;
+  });
+
+  Object.keys(daily).forEach(date => {
+    const div = document.createElement('div');
+    div.innerHTML = `${date} | ✅ ${daily[date].good} ❌ ${daily[date].bad}`;
+    el.appendChild(div);
+  });
+}
+
+function renderChart() {
+  const filter = document.getElementById("timeFilter").value;
+  const now = new Date();
+
+  const labels = [];
+  const data = [];
+  const backgroundColors = [];
+
+  logs.forEach(log => {
+    const d = new Date(log.timestamp);
+
+    if (filter === "day" && d.toDateString() !== now.toDateString()) return;
+    if (filter === "week" && (now - d) > 7 * 24 * 60 * 60 * 1000) return;
+    if (filter === "month" && d.getMonth() !== now.getMonth()) return;
+    if (filter === "year" && d.getFullYear() !== now.getFullYear()) return;
+
+    const habit = habits.find(h => h.id === log.habitId);
+    if (!habit) return;
+
+    const index = labels.indexOf(habit.name);
+
+    if (index === -1) {
+      labels.push(habit.name);
+      data.push(1);
+      backgroundColors.push(habit.type === "good" ? "#28a745" : "#dc3545");
+    } else {
+      data[index]++;
+    }
+  });
+
+  const ctx = document.getElementById("paretoChart").getContext("2d");
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Completions",
+        data: data,
+        backgroundColor: backgroundColors
+      }]
+    }
+  });
+}
+
+window.onload = function () {
+  displayHabits();
+  displaySummary();
+  showPage('tracker');
+};
+</script>
+
+  </div>
+</body>
+</html>
