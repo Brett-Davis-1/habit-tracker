@@ -50,6 +50,31 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
 
+
+   /* ===============================
+   HABIT GRID LAYOUT
+   - Turns habit list into responsive grid
+   - Automatically creates 1–2+ columns
+   - Makes cards feel like an app dashboard
+================================== */
+#habitList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+
+ /* ===============================
+   GRID CARD ALIGNMENT FIX
+   - Ensures habit cards behave properly inside grid
+   - Prevents weird stretching or uneven heights
+   - Makes cards feel consistent and app-like
+================================== */
+
+.habit-card {
+  height: 100%;
+}
+
   input, select {
     width: 100%;
     padding: 10px;
@@ -69,23 +94,157 @@
     cursor: pointer;
   }
 
-  .habit-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    border-radius: 10px;
-    background: #f9f9f9;
-    margin-top: 8px;
-  }
+.habit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 
-  .habit-actions button {
-    margin-left: 5px;
-    padding: 6px 8px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-  }
+  padding: 14px 14px 12px 14px;
+  border-radius: 10px;
+
+  background: #fffdf7;
+  border: 1px solid #e6e0d6;
+
+  margin-top: 10px;
+
+  box-shadow:
+    0 2px 0 rgba(0,0,0,0.05),
+    0 6px 14px rgba(0,0,0,0.08);
+
+  position: relative;
+
+  transition: transform 0.12s ease;
+}
+
+/* subtle paper texture line */
+.habit-card::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  background: rgba(0,0,0,0.06);
+  border-radius: 2px;
+}
+
+.habit-card:hover {
+  transform: translateY(-2px) rotate(-0.2deg);
+}
+
+/* GOOD = green stamp feel */
+.habit-card.good {
+  border-left: 6px solid #28a745;
+}
+
+/* BAD = red stamp feel */
+.habit-card.bad {
+  border-left: 6px solid #dc3545;
+}
+
+.habit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.habit-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.habit-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f1f1f1;
+  text-transform: capitalize;
+}
+
+.habit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.habit-actions button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.habit-actions button:first-child {
+  background: #007bff;
+  color: white;
+}
+
+.habit-actions button:last-child {
+  background: #dc3545;
+  color: white;
+  font-weight: 600;
+}
+
+ /* ===============================
+   DRAG & DROP ZONES
+   - Visual targets for categorizing habits
+   - Will become interactive next step
+================================== */
+
+.drop-zone {
+  flex: 1;
+  padding: 18px;
+  text-align: center;
+  border-radius: 14px;
+  background: #2c2f36;
+  color: white;
+  font-weight: 600;
+  position: relative;
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,0.25),
+              0 6px 14px rgba(0,0,0,0.15);
+  transition: transform 0.15s ease, background 0.2s ease;
+  min-height: 120px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+/* ballot slot graphic / UI for the ballot box drop zones*/
+.drop-zone::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 20%;
+  width: 60%;
+  height: 10px;
+  background: #111;
+  border-radius: 6px;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.05);
+}
+
+.good-zone {
+  border: 2px solid #28a745;
+}
+
+.bad-zone {
+  border: 2px solid #dc3545;
+}
+
+.drop-zone:hover {
+  transform: translateY(-2px);
+}
+
+.drop-zone.drag-over-good {
+  background: #1f3d2a;
+  box-shadow: 0 0 0 3px #28a745;
+}
+
+.drop-zone.drag-over-bad {
+  background: #3d1f1f;
+  box-shadow: 0 0 0 3px #dc3545;
+}
 
   .good {
     border-left: 5px solid #28a745;
@@ -94,7 +253,70 @@
   .bad {
     border-left: 5px solid #dc3545;
   }
+
+
+@keyframes stampIn {
+  0% {
+    transform: scale(2) rotate(-10deg);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(0.9) rotate(2deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.05) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+/*vote stamping animation */
+.vote-stamp {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  font-weight: 800;
+  padding: 20px 30px;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 9999;
+  animation: stampIn 700ms ease-out forwards;
+  border: 4px solid;
+  background: white;
+}
+
+.vote-stamp.good {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.vote-stamp.bad {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+/*helper function for the vote stamp animation*/
+function showStamp(type) {
+  const stamp = document.createElement("div");
+  stamp.className = `vote-stamp ${type}`;
+  stamp.innerText = type === "good" ? "APPROVED ✓" : "REJECTED ✗";
+
+  document.body.appendChild(stamp);
+
+  setTimeout(() => {
+    stamp.remove();
+  }, 700);
+}
+
 </style>
+
+
+
 <!-- End UI upgrade from ChatGPT -->
 </head>
 
@@ -127,10 +349,31 @@
     <div id="summary"></div>
   </div>
 
-  <div class="card">
-    <h2>Your Habits</h2>
-    <div id="habitList"></div>
+<div class="card">
+  <h2>Your Habits</h2>
+  <div id="habitList"></div>
+</div>
+
+<!-- ===============================
+   DRAG & DROP ZONES (UI ONLY)
+   - These are placeholders for sorting habits
+   - Functionality will be added next step
+================================== -->
+<div class="card">
+  <h2>Log Habit</h2>
+
+  <div style="display:flex; gap:10px;">
+    
+    <div id="goodDrop" class="drop-zone good-zone">
+      👍 Drop Good Habits Here
+    </div>
+
+    <div id="badDrop" class="drop-zone bad-zone">
+      👎 Drop Bad Habits Here
+    </div>
+
   </div>
+</div>
 
 </div>
 
@@ -149,7 +392,6 @@
   <canvas id="paretoChart"></canvas>
 
 </div>
-
 <script>
 let habits = JSON.parse(localStorage.getItem('habits')) || [];
 let logs = JSON.parse(localStorage.getItem('logs')) || [];
@@ -180,27 +422,44 @@ function saveData() {
 }
 
 function addHabit() {
-  const name = document.getElementById('habitName').value;
-  const type = document.getElementById('habitType').value;
+  const nameInput = document.getElementById('habitName');
+  const typeInput = document.getElementById('habitType');
 
-  habits.push({ id: Date.now(), name, type });
+  const name = nameInput.value.trim();
+  const type = typeInput.value;
+
+  if (!name) return;
+
+  habits.push({
+    id: Date.now(),
+    name,
+    type
+  });
 
   saveData();
   displayHabits();
   displaySummary();
+
+  nameInput.value = "";
 }
 
+// Logs a habit completion as a "good" outcome
 function logHabit(id) {
-  logs.push({ habitId: id, timestamp: Date.now() });
+  logs.push({
+    habitId: id,
+    timestamp: Date.now(),
+    outcome: "good"
+  });
+
   saveData();
-  displayHabits();
   displaySummary();
+  showStamp("good");
+  displayHabits();
 }
+
 
 function deleteHabit(id) {
   habits = habits.filter(h => h.id !== id);
-
-  // remove related logs too (important)
   logs = logs.filter(l => l.habitId !== id);
 
   saveData();
@@ -214,15 +473,24 @@ function displayHabits() {
 
   habits.forEach(h => {
     const div = document.createElement('div');
-div.className = `habit-card ${h.type}`;
+    div.className = `habit-card ${h.type}`;
+    div.draggable = true;
 
-div.innerHTML = `
-  <span>${h.name}</span>
-  <div class="habit-actions">
-    <button onclick="logHabit(${h.id})">Log</button>
-    <button onclick="deleteHabit(${h.id})">Delete</button>
-  </div>
-`;
+    div.ondragstart = (e) => {
+      e.dataTransfer.setData("habitId", h.id);
+    };
+
+    div.innerHTML = `
+      <div class="habit-header">
+        <div class="habit-name">${h.name}</div>
+        <div class="habit-badge">${h.type}</div>
+      </div>
+
+      <div class="habit-actions">
+        <button onclick="deleteHabit(${h.id})">Delete</button>
+      </div>
+    `;
+
     list.appendChild(div);
   });
 }
@@ -235,11 +503,13 @@ function displaySummary() {
 
   logs.forEach(l => {
     const date = new Date(l.timestamp).toLocaleDateString();
-    const habit = habits.find(h => h.id === l.habitId);
-    if (!habit) return;
 
-    if (!daily[date]) daily[date] = { good: 0, bad: 0 };
-    daily[date][habit.type]++;
+    if (!daily[date]) {
+      daily[date] = { good: 0, bad: 0 };
+    }
+
+    if (l.outcome === "good") daily[date].good++;
+    else if (l.outcome === "bad") daily[date].bad++;
   });
 
   Object.keys(daily).forEach(date => {
@@ -249,34 +519,114 @@ function displaySummary() {
   });
 }
 
+function setupDragAndDrop() {
+  const good = document.getElementById("goodDrop");
+  const bad = document.getElementById("badDrop");
+
+/*drag and drop updates*/
+good.ondragover = (e) => {
+  e.preventDefault();
+  good.classList.add("drag-over-good");
+};
+
+good.ondragleave = () => {
+  good.classList.remove("drag-over-good");
+};
+
+bad.ondragover = (e) => {
+  e.preventDefault();
+  bad.classList.add("drag-over-bad");
+};
+
+bad.ondragleave = () => {
+  bad.classList.remove("drag-over-bad");
+};
+
+good.ondrop = (e) => {
+  good.classList.remove("drag-over-good");
+
+  const id = Number(e.dataTransfer.getData("habitId"));
+
+  logs.push({
+    habitId: id,
+    timestamp: Date.now(),
+    outcome: "good"
+  });
+
+  saveData();
+  displaySummary();
+  showStamp("good");
+  displayHabits();
+};
+
+bad.ondrop = (e) => {
+  bad.classList.remove("drag-over-bad");
+
+  const id = Number(e.dataTransfer.getData("habitId"));
+
+  logs.push({
+    habitId: id,
+    timestamp: Date.now(),
+    outcome: "bad"
+  });
+
+  saveData();
+  displaySummary();
+  showStamp("bad");
+  displayHabits();
+};
+}
+
 function renderChart() {
   const filter = document.getElementById("timeFilter").value;
   const now = new Date();
-
-  const labels = [];
-  const data = [];
-  const backgroundColors = [];
+  const counts = {};
 
   logs.forEach(log => {
     const d = new Date(log.timestamp);
+    const dayMs = 24 * 60 * 60 * 1000;
 
     if (filter === "day" && d.toDateString() !== now.toDateString()) return;
-    if (filter === "week" && (now - d) > 7 * 24 * 60 * 60 * 1000) return;
-    if (filter === "month" && d.getMonth() !== now.getMonth()) return;
-    if (filter === "year" && d.getFullYear() !== now.getFullYear()) return;
+
+    if (filter === "week") {
+      const diffDays = (now - d) / dayMs;
+      if (diffDays > 7) return;
+    }
+
+    if (filter === "month") {
+      if (
+        d.getMonth() !== now.getMonth() ||
+        d.getFullYear() !== now.getFullYear()
+      ) return;
+    }
+
+    if (filter === "year") {
+      if (d.getFullYear() !== now.getFullYear()) return;
+    }
 
     const habit = habits.find(h => h.id === log.habitId);
     if (!habit) return;
 
-    const index = labels.indexOf(habit.name);
-
-    if (index === -1) {
-      labels.push(habit.name);
-      data.push(1);
-      backgroundColors.push(habit.type === "good" ? "#28a745" : "#dc3545");
-    } else {
-      data[index]++;
+    if (!counts[habit.name]) {
+      counts[habit.name] = {
+        total: 0,
+        good: 0,
+        bad: 0
+      };
     }
+
+    counts[habit.name].total++;
+
+    if (log.outcome === "good") counts[habit.name].good++;
+    if (log.outcome === "bad") counts[habit.name].bad++;
+  });
+
+  const labels = Object.keys(counts);
+  const data = labels.map(name => counts[name].total);
+  const backgroundColors = labels.map(name => {
+    return counts[name].good >= counts[name].bad
+      ? "#28a745"
+      : "#dc3545";
   });
 
   const ctx = document.getElementById("paretoChart").getContext("2d");
@@ -286,10 +636,10 @@ function renderChart() {
   chart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: labels,
+      labels,
       datasets: [{
         label: "Completions",
-        data: data,
+        data,
         backgroundColor: backgroundColors
       }]
     }
@@ -300,6 +650,7 @@ window.onload = function () {
   displayHabits();
   displaySummary();
   showPage('tracker');
+  setupDragAndDrop();
 };
 </script>
 
