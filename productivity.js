@@ -2,8 +2,17 @@
 const M=window.BuddyModel,D=window.PersonalData,main=document.querySelector('#main'),dialog=document.querySelector('#dialog'),content=document.querySelector('#dialog-content'),STORE=D?.STORE||'habit-buddy-productivity-v1';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>M.key(new Date()),fmt=(d,o={weekday:'long',month:'long',day:'numeric'})=>M.date(d).toLocaleDateString('en-US',o);
-let selected=today(),month=selected,blocked=false,state;
-try{const raw=localStorage.getItem(STORE);state=raw?M.validate(JSON.parse(raw)):D.empty();}catch{state=D.empty();blocked=true;}
+let selected=today(),month=selected,blocked=false,state,recovered=0;
+function legacyCandidate(){
+  const directHabits=localStorage.getItem('habits'),directLogs=localStorage.getItem('logs');
+  if(directHabits){try{return{key:'habits + logs',value:{habits:JSON.parse(directHabits),logs:directLogs?JSON.parse(directLogs):[]},raw:JSON.stringify({habits:directHabits,logs:directLogs})};}catch{}}
+  const candidates=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key||key===STORE)continue;try{const raw=localStorage.getItem(key),value=JSON.parse(raw);if(Array.isArray((value?.state||value)?.habits)&&((value?.state||value).habits.length))candidates.push({key,value,raw});}catch{}}
+  return candidates.sort((a,b)=>(b.value?.state||b.value).habits.length-(a.value?.state||a.value).habits.length)[0]||null;
+}
+try{
+  const raw=localStorage.getItem(STORE);state=raw?M.validate(JSON.parse(raw)):D.empty();
+  if(!state.goals.length&&!state.habits.length){const old=legacyCandidate();if(old){const next=M.recoverLegacy(old.value,today());if(next.habits.length){localStorage.setItem('habit-buddy-legacy-snapshot',old.raw);state=next;recovered=next.habits.length;}}}
+}catch{state=D.empty();blocked=true;}
 const button=(text,action,attrs='',kind='')=>`<button type="button" class="button ${kind}" data-action="${action}" ${attrs}>${text}</button>`;
 function save(){const el=document.querySelector('#save-state');if(blocked){el.textContent='Not saving changes';return false;}try{localStorage.setItem(STORE,JSON.stringify(state));el.textContent='Saved on this device';return true;}catch{el.textContent='Could not save';toast('This change could not be saved.');return false;}}
 function toast(text){const el=document.querySelector('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2300);}
@@ -38,6 +47,6 @@ document.addEventListener('submit',e=>{const f=e.target.closest('[data-form]');i
 window.addEventListener('hashchange',render);
 if(window.PersonalApp)window.personalUI=window.PersonalApp.create({D,button,openDialog:(t,b)=>open(t,b),dialog,esc,flush:()=>{},state:()=>state,replace:next=>{state=D.replace(localStorage,next);blocked=false;selected=today();dialog.close();render();}});
 document.addEventListener('change',e=>window.personalUI?.change?.(e));
-render();
+render();if(recovered)toast(`Recovered ${recovered} daily action${recovered===1?'':'s'} and their available history from this device.`);
 })();
 

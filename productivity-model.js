@@ -29,7 +29,24 @@ function updateHabit(s,id,input){const h=find(s.habits,id,'Daily action');if(inp
 function removeHabit(s,id){find(s.habits,id,'Daily action');s.habits=s.habits.filter(h=>h.id!==id);for(const logs of Object.values(s.logs))delete logs[id];}
 function setHabit(s,id,day,outcome){const h=find(s.habits,id,'Daily action');date(day);if(h.createdOn&&day<h.createdOn)throw Error('This daily action did not exist on that day.');if(day>key(new Date()))throw Error('Check in on this day when it arrives.');if(!['good','bad',null].includes(outcome))throw Error('Choose a valid result.');s.logs[day]??={};if(outcome===null){delete s.logs[day][id];return;}s.logs[day][id]={outcome,time:new Date().toISOString()};}
 function saveJournal(s,day,entry){date(day);s.journal[day]={...(s.journal[day]||{}),text:String(entry.text||'').slice(0,50000),savedAt:new Date().toISOString()};}
-const api={key,date,shift,week,days,clone,empty,validate,habitSummary,habitDueOn,habitsForDay,createGoal,updateGoal,removeGoal,createHabit,updateHabit,removeHabit,setHabit,saveJournal};
+function recoverLegacy(value,fallbackDay=key(new Date())){
+  const source=value?.state||value;
+  if(source?.version===1)return validate(clone(source));
+  if(!source||!Array.isArray(source.habits))throw Error('No recoverable habits were found.');
+  const s=empty(),ids=new Map();
+  source.habits.forEach((old,index)=>{
+    const original=String(old.id??index),id=`legacy-${original.replace(/[^a-zA-Z0-9_-]/g,'-')}`;
+    ids.set(original,id);s.habits.push({id,title:cleanTitle(old.title||old.name),type:old.type==='bad'?'bad':'good',goalId:'',icon:old.type==='bad'?'shield':'activity',createdOn:fallbackDay,frequency:'daily'});
+  });
+  const entries=Array.isArray(source.logs)?source.logs:Object.entries(source.logs||{}).flatMap(([day,logs])=>Object.entries(logs||{}).map(([habitId,log])=>({...log,habitId,day})));
+  entries.sort((a,b)=>Number(a.timestamp||Date.parse(a.time)||0)-Number(b.timestamp||Date.parse(b.time)||0)).forEach(log=>{
+    const id=ids.get(String(log.habitId));if(!id)return;
+    let day=log.day;if(!day){const when=new Date(Number(log.timestamp)||Date.parse(log.time));day=Number.isNaN(when.valueOf())?fallbackDay:key(when);}
+    try{date(day);}catch{return;}const outcome=log.outcome==='bad'?'bad':'good';s.logs[day]??={};s.logs[day][id]={outcome,time:log.time||new Date(Number(log.timestamp)||Date.now()).toISOString()};const h=s.habits.find(x=>x.id===id);if(h&&day<h.createdOn)h.createdOn=day;
+  });
+  return validate(s);
+}
+const api={key,date,shift,week,days,clone,empty,validate,recoverLegacy,habitSummary,habitDueOn,habitsForDay,createGoal,updateGoal,removeGoal,createHabit,updateHabit,removeHabit,setHabit,saveJournal};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BuddyModel=api;
 })(globalThis);
 
