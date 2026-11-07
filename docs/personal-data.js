@@ -1,0 +1,10 @@
+(function(root){'use strict';
+const M=typeof module!=='undefined'&&module.exports?require('./productivity-model.js'):root.BuddyModel;
+const STORE='habit-buddy-productivity-v1',RECOVERY=STORE+'-recovery',empty=()=>M.empty();
+function validate(value){const s=M.clone(value);M.validate(s);const text=JSON.stringify(s);if(text.length>10000000)throw Error('This backup is too large (10 MB maximum).');JSON.parse(text,(k,v)=>{if(['__proto__','constructor','prototype'].includes(k))throw Error('The backup contains an unsafe field.');return v;});for(const list of ['goals','milestones','commitments','tasks','habits'])for(const item of s[list]){if(!/^[a-zA-Z0-9_-]{1,100}$/.test(item.id)||!item.title.trim()||item.title.length>180)throw Error('The backup contains an invalid item.');}for(const h of s.habits){if(!['good','bad'].includes(h.type))throw Error('Invalid daily action type.');if(h.createdOn)M.date(h.createdOn);}for(const [day,logs] of Object.entries(s.logs))for(const [id,log] of Object.entries(logs)){if(!s.habits.some(h=>h.id===id)||!log||typeof log!=='object'||(log.time&&!Number.isFinite(Date.parse(log.time))))throw Error('Invalid check-in history.');}return s;}
+function read(text){let data;try{data=JSON.parse(text);}catch{throw Error('Choose a valid Habit Buddy JSON backup.');}if(data.app){if(data.app!=='habit-buddy'||data.backupVersion!==1)throw Error('This backup format is not supported.');data=data.state;}return validate(data);}
+const backup=s=>JSON.stringify({app:'habit-buddy',backupVersion:1,exportedAt:new Date().toISOString(),state:validate(s)},null,2);
+function replace(storage,next){const valid=validate(next),prior=storage.getItem(STORE),old=storage.getItem(RECOVERY);try{if(prior!==null)storage.setItem(RECOVERY,prior);storage.setItem(STORE,JSON.stringify(valid));}catch{try{if(old===null)storage.removeItem(RECOVERY);else storage.setItem(RECOVERY,old);}catch{}throw Error('There is not enough device storage. Your workspace was not replaced.');}return valid;}
+const api={STORE,RECOVERY,empty,validate,read,backup,replace};if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PersonalData=api;
+})(globalThis);
+
