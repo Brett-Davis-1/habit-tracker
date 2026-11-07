@@ -1,5 +1,5 @@
 'use strict';
-const CACHE='habit-buddy-shell-v3';
+const CACHE='habit-buddy-shell-v4-2027-goals';
 const FILES=['productivity.html','productivity.css','personal-app.css','productivity-model.js','personal-data.js','personal-app.js','productivity.js','pwa.js','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
 const root=new URL('./',self.location.href);
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(async cache=>{
@@ -30,4 +30,3 @@ self.addEventListener('fetch',event=>{
   }
   event.respondWith(caches.match(key).then(cached=>cached||fetch(event.request)));
 });
-

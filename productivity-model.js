@@ -21,8 +21,10 @@ function validate(value){
 const habitDueOn=(h,day)=>(!h.createdOn||h.createdOn<=day);
 const habitsForDay=(s,day)=>s.habits.filter(h=>habitDueOn(h,day)||s.logs[day]?.[h.id]);
 function habitSummary(s,day){date(day);const ids=new Set(habitsForDay(s,day).map(h=>h.id)),values=Object.entries(s.logs[day]||{}).filter(([id])=>ids.has(id)).map(([,x])=>x);const good=values.filter(x=>x.outcome==='good').length,bad=values.length-good;return{good,bad,total:values.length,due:ids.size,percent:values.length?Math.round(good/values.length*100):0};}
-function createGoal(s,input){const g={id:uid(),title:cleanTitle(input.title),why:String(input.why||'').trim().slice(0,600),color:['green','blue','amber'].includes(input.color)?input.color:'green',icon:'target'};s.goals.push(g);return g;}
-function updateGoal(s,id,input){const g=find(s.goals,id,'Goal');g.title=cleanTitle(input.title);g.why=String(input.why||'').trim().slice(0,600);return g;}
+const goalYear=v=>{if(v==null||v==='')return null;const year=Number(v);if(!Number.isInteger(year)||year<2000||year>2100)throw Error('Choose a valid goal year.');return year;};
+function createGoal(s,input){const g={id:uid(),title:cleanTitle(input.title),why:String(input.why||'').trim().slice(0,600),year:goalYear(input.year),color:['green','blue','amber'].includes(input.color)?input.color:'green',icon:'target'};s.goals.push(g);return g;}
+function updateGoal(s,id,input){const g=find(s.goals,id,'Goal'),year=input.year===undefined?g.year:goalYear(input.year),title=cleanTitle(input.title);Object.assign(g,{title,why:String(input.why||'').trim().slice(0,600),year});return g;}
+function addGoalHabits(s,goalId,inputs,day){find(s.goals,goalId,'Goal');if(!Array.isArray(inputs)||!inputs.length)throw Error('Add at least one habit.');const draft=clone(s);const added=inputs.map(input=>createHabit(draft,{...input,goalId,date:day}));s.habits.push(...added);return added;}
 function removeGoal(s,id){find(s.goals,id,'Goal');s.goals=s.goals.filter(g=>g.id!==id);s.habits.forEach(h=>{if(h.goalId===id)h.goalId='';});}
 function createHabit(s,input){if(input.goalId)find(s.goals,input.goalId,'Goal');date(input.date);const h={id:uid(),title:cleanTitle(input.title),type:input.type==='bad'?'bad':'good',goalId:input.goalId||'',icon:input.type==='bad'?'shield':'activity',createdOn:input.date,frequency:'daily'};s.habits.push(h);return h;}
 function updateHabit(s,id,input){const h=find(s.habits,id,'Daily action');if(input.goalId)find(s.goals,input.goalId,'Goal');h.title=cleanTitle(input.title);h.type=input.type==='bad'?'bad':'good';h.goalId=input.goalId||'';h.frequency='daily';delete h.weekdays;return h;}
@@ -46,7 +48,6 @@ function recoverLegacy(value,fallbackDay=key(new Date())){
   });
   return validate(s);
 }
-const api={key,date,shift,week,days,clone,empty,validate,recoverLegacy,habitSummary,habitDueOn,habitsForDay,createGoal,updateGoal,removeGoal,createHabit,updateHabit,removeHabit,setHabit,saveJournal};
+const api={key,date,shift,week,days,clone,empty,validate,recoverLegacy,habitSummary,habitDueOn,habitsForDay,createGoal,updateGoal,removeGoal,addGoalHabits,createHabit,updateHabit,removeHabit,setHabit,saveJournal};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.BuddyModel=api;
 })(globalThis);
-
